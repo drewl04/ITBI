@@ -1,0 +1,54 @@
+
+
+In linux, Ubuntu:
+Acest script este intr-un fisier script.sh. Eu sunt "utilizatorul principal" pe nume ANDREW.
+Daca deschid terminalul si dau run la script cu ./script.sh, si las scriptul sa mearga...
+Deschid alt terminal si creez un user cu comanda "sudo adduser (nume, sa zicem GRIGORE)", apoi
+ma duc in acel user cu comanda "su GRIGORE". In folderul UserFS, ar trebui sa apara un folder GRIGORE
+in care este fisierul procs. Daca apoi inchid terminalul cu grigore, ar trebui sa creeze un fisier lastlogin nu?
+De ce nu merge asa scriptul?
+
+#!/bin/bash
+
+ROOT_DIR="active_users_root" # Directorul radacina unde se stocheaza informatiile
+UPDATE_INTERVAL=30 # Intervalul de actualizare in secunde
+
+# Creeaza directorul radacina daca nu exista
+mkdir -p "$ROOT_DIR"
+
+while true; do
+    # Obține lista utilizatorilor activi
+    active_users=$(who | awk '{print $1}' | sort | uniq)
+
+    # Actualizează informațiile pentru fiecare utilizator activ
+    for user in $active_users; do
+        user_dir="$ROOT_DIR/$user"
+        procs_file="$user_dir/procs"
+        
+        # Creeaza directorul utilizatorului daca nu exista
+        mkdir -p "$user_dir"
+        
+        # Listează procesele utilizatorului și le scrie în fișier
+        ps -u "$user" > "$procs_file"
+    done
+
+    # Verifică utilizatorii care nu mai sunt activi
+    for user_dir in "$ROOT_DIR"/*; do
+        user=$(basename "$user_dir")
+        
+        if ! echo "$active_users" | grep -q "^$user$"; then
+            # Utilizatorul nu mai este activ
+            procs_file="$user_dir/procs"
+            lastlogin_file="$user_dir/lastlogin"
+            
+            # Goleste fișierul `procs`
+            > "$procs_file"
+            
+            # Salveaza data și ora ultimei sesiuni
+            date > "$lastlogin_file"
+        fi
+    done
+
+    # Așteaptă înainte de următoarea actualizare
+    sleep $UPDATE_INTERVAL
+done
